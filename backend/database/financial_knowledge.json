@@ -1,0 +1,22 @@
+{
+  "budgeting_rules": [
+    {"name": "50/30/20 Rule", "description": "Allocate 50% to needs, 30% to wants, 20% to savings"},
+    {"name": "Emergency Fund", "description": "Maintain 3-6 months of expenses in liquid savings"},
+    {"name": "Debt Snowball", "description": "Pay off smallest debts first for psychological momentum"}
+  ],
+  "savings_benchmarks": [
+    {"threshold": 5, "advice": "Critical: savings rate below 5%. Reduce discretionary spending immediately."},
+    {"threshold": 10, "advice": "Below average savings rate. Consider automating savings transfers."},
+    {"threshold": 20, "advice": "Good progress. Aim for 20%+ to accelerate wealth building."}
+  ],
+  "investment_allocations": {
+    "low": "80% bonds / 15% index funds / 5% cash",
+    "medium": "60% index funds / 25% bonds / 10% growth stocks / 5% cash",
+    "high": "70% growth stocks / 20% index funds / 5% crypto / 5% alternatives"
+  },
+  "risk_profile_guidance": {
+    "low": "Focus on capital preservation. Treasury bonds, CDs, and high-yield savings accounts.",
+    "medium": "Balanced approach. Diversified index funds with some bond allocation.",
+    "high": "Growth-oriented. Aggressive equity allocation with alternative investments."
+  }
+}
