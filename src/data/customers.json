@@ -1,0 +1,72 @@
+[
+  {
+    "accountNumber": "1001",
+    "name": "Alice Johnson",
+    "email": "alice.johnson@email.com",
+    "phone": "+1-555-0101",
+    "accountType": "Savings",
+    "balance": 24500,
+    "branch": "Downtown Main",
+    "monthlyIncome": 6500,
+    "monthlyExpenses": 4200,
+    "savings": 24500,
+    "investmentGoals": "Retirement and wealth building",
+    "riskTolerance": "medium"
+  },
+  {
+    "accountNumber": "1002",
+    "name": "Bob Martinez",
+    "email": "bob.martinez@email.com",
+    "phone": "+1-555-0102",
+    "accountType": "Checking",
+    "balance": 8200,
+    "branch": "Westside Branch",
+    "monthlyIncome": 4800,
+    "monthlyExpenses": 4100,
+    "savings": 8200,
+    "investmentGoals": "Buy a home in 3 years",
+    "riskTolerance": "low"
+  },
+  {
+    "accountNumber": "1003",
+    "name": "Carol Chen",
+    "email": "carol.chen@email.com",
+    "phone": "+1-555-0103",
+    "accountType": "Savings",
+    "balance": 52000,
+    "branch": "Eastside Plaza",
+    "monthlyIncome": 9200,
+    "monthlyExpenses": 5500,
+    "savings": 52000,
+    "investmentGoals": "Early retirement and passive income",
+    "riskTolerance": "high"
+  },
+  {
+    "accountNumber": "1004",
+    "name": "David Patel",
+    "email": "david.patel@email.com",
+    "phone": "+1-555-0104",
+    "accountType": "Checking",
+    "balance": 3100,
+    "branch": "Northgate Center",
+    "monthlyIncome": 3500,
+    "monthlyExpenses": 3200,
+    "savings": 3100,
+    "investmentGoals": "Build emergency fund",
+    "riskTolerance": "low"
+  },
+  {
+    "accountNumber": "1005",
+    "name": "Eva Rossi",
+    "email": "eva.rossi@email.com",
+    "phone": "+1-555-0105",
+    "accountType": "Premium Savings",
+    "balance": 115000,
+    "branch": "Financial District",
+    "monthlyIncome": 14000,
+    "monthlyExpenses": 7800,
+    "savings": 115000,
+    "investmentGoals": "Diversified portfolio and children's education",
+    "riskTolerance": "medium"
+  }
+]

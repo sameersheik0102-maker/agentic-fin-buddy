@@ -1,9 +1,35 @@
 /**
  * Client-side simulation of the multi-agent orchestration system.
- * In production, these would be Python FastAPI endpoints.
+ * Uses internal JSON data sources — no external APIs.
  * 
- * Flow: User Input → DataAnalyzer → RiskAgent → PlannerAgent → RMSummary → Response
+ * Flow: Account Lookup → User Input → DataAnalyzer → RiskAgent → PlannerAgent → RMSummary → Response
  */
+
+import customersData from "@/data/customers.json";
+import faqsData from "@/data/faqs.json";
+import financialKnowledge from "../../backend/database/financial_knowledge.json";
+
+export interface CustomerRecord {
+  accountNumber: string;
+  name: string;
+  email: string;
+  phone: string;
+  accountType: string;
+  balance: number;
+  branch: string;
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  savings: number;
+  investmentGoals: string;
+  riskTolerance: string;
+}
+
+export interface FAQEntry {
+  id: string;
+  keywords: string[];
+  question: string;
+  answer: string;
+}
 
 export interface FinancialProfile {
   monthlyIncome: number;
@@ -22,6 +48,31 @@ export interface AgentResult {
   recommendations: string[];
   rmSummary: string;
   spendingPatterns: { category: string; percentage: number }[];
+}
+
+// --- Account Lookup (from customers.json) ---
+export function lookupCustomer(accountNumber: string): CustomerRecord | null {
+  return (customersData as CustomerRecord[]).find(
+    (c) => c.accountNumber === accountNumber.trim()
+  ) || null;
+}
+
+// --- FAQ Lookup (from faqs.json) ---
+export function findFAQ(query: string): FAQEntry | null {
+  const lower = query.toLowerCase();
+  const faqs = faqsData as FAQEntry[];
+
+  // Direct keyword match
+  for (const faq of faqs) {
+    if (faq.keywords.some((kw) => lower.includes(kw))) {
+      return faq;
+    }
+  }
+  return null;
+}
+
+export function getAllFAQs(): FAQEntry[] {
+  return faqsData as FAQEntry[];
 }
 
 // --- DataAnalyzerAgent ---
@@ -50,7 +101,7 @@ function assessRisk(profile: FinancialProfile, savingsRate: number): "Low" | "Me
   return "Medium";
 }
 
-// --- WellnessPlannerAgent (with RAG knowledge) ---
+// --- WellnessPlannerAgent (RAG from financial_knowledge.json) ---
 function generateRecommendations(profile: FinancialProfile, riskProfile: string, savingsRate: number): { strengths: string[]; gaps: string[]; recommendations: string[] } {
   const strengths: string[] = [];
   const gaps: string[] = [];
@@ -67,12 +118,44 @@ function generateRecommendations(profile: FinancialProfile, riskProfile: string,
 
   if (profile.monthlyIncome > profile.monthlyExpenses * 1.5) strengths.push("Healthy income-to-expense ratio");
 
-  // RAG-based recommendations from financial_knowledge
-  if (savingsRate < 20) recommendations.push("Apply the 50/30/20 rule: 50% needs, 30% wants, 20% savings");
-  if (emergencyMonths < 6) recommendations.push(`Increase emergency fund by $${Math.round((6 * profile.monthlyExpenses - profile.savings) / 12)}/month over 12 months`);
-  if (riskProfile === "Low" || riskProfile === "Medium") recommendations.push("Consider diversified index fund investments for long-term growth");
-  if (profile.investmentGoals.toLowerCase().includes("retire")) recommendations.push("Max out retirement account contributions (401k/IRA)");
-  recommendations.push("Review and optimize recurring subscriptions quarterly");
+  // RAG: pull from financial_knowledge.json
+  const knowledge = financialKnowledge as any;
+
+  // Savings benchmarks
+  for (const bench of knowledge.savings_benchmarks || []) {
+    if (savingsRate < bench.threshold) {
+      recommendations.push(bench.advice);
+      break; // only the most relevant
+    }
+  }
+
+  // Budgeting rules
+  if (savingsRate < 20) {
+    const rule5030 = (knowledge.budgeting_rules || []).find((r: any) => r.name === "50/30/20 Rule");
+    if (rule5030) recommendations.push(`${rule5030.name}: ${rule5030.description}`);
+  }
+
+  // Investment allocations
+  const allocations = knowledge.investment_allocations || {};
+  const riskKey = riskProfile.toLowerCase();
+  if (allocations[riskKey]) {
+    recommendations.push(`Suggested allocation for ${riskProfile} risk: ${allocations[riskKey]}`);
+  }
+
+  // Risk guidance
+  const guidance = knowledge.risk_profile_guidance || {};
+  if (guidance[riskKey]) {
+    recommendations.push(guidance[riskKey]);
+  }
+
+  if (emergencyMonths < 6) {
+    recommendations.push(`Increase emergency fund by $${Math.round((6 * profile.monthlyExpenses - profile.savings) / 12)}/month over 12 months`);
+  }
+
+  if (profile.investmentGoals.toLowerCase().includes("retire")) {
+    recommendations.push("Max out retirement account contributions (401k/IRA)");
+  }
+
   if (riskProfile === "High") recommendations.push("Prioritize debt reduction before aggressive investing");
 
   return { strengths, gaps, recommendations };

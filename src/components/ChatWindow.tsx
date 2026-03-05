@@ -2,12 +2,22 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ASSESSMENT_QUESTIONS, type FinancialProfile } from "@/lib/agents";
+import {
+  ASSESSMENT_QUESTIONS,
+  lookupCustomer,
+  findFAQ,
+  getAllFAQs,
+  type FinancialProfile,
+  type CustomerRecord,
+} from "@/lib/agents";
+import { SYSTEM_PROMPTS, FAQ_PROMPTS } from "@/lib/prompts";
 
 interface Message {
   role: "assistant" | "user";
   content: string;
 }
+
+type ChatPhase = "account_lookup" | "menu" | "assessment" | "post_complete";
 
 interface ChatWindowProps {
   onComplete: (profile: FinancialProfile) => void;
@@ -16,36 +26,130 @@ interface ChatWindowProps {
 
 export default function ChatWindow({ onComplete, isComplete }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Welcome to Agentic Wealth Navigator! 🚀\n\nI'll ask you a few questions to assess your financial wellness and provide personalized recommendations.\n\nLet's start — **What is your monthly income (after tax)?**" },
+    { role: "assistant", content: SYSTEM_PROMPTS.welcome },
   ]);
   const [input, setInput] = useState("");
+  const [phase, setPhase] = useState<ChatPhase>("account_lookup");
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim() || isComplete) return;
-    const currentQ = ASSESSMENT_QUESTIONS[step];
-    const userMsg = input.trim();
-    setInput("");
+  const addMessages = (msgs: Message[]) => setMessages((prev) => [...prev, ...msgs]);
 
+  const handleAccountLookup = (userMsg: string) => {
+    if (userMsg.toLowerCase() === "skip") {
+      setPhase("assessment");
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: SYSTEM_PROMPTS.skipAccount },
+      ]);
+      return;
+    }
+
+    const found = lookupCustomer(userMsg);
+    if (found) {
+      setCustomer(found);
+      setPhase("menu");
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: SYSTEM_PROMPTS.accountFound(found.name) },
+      ]);
+    } else {
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: SYSTEM_PROMPTS.accountNotFound },
+      ]);
+    }
+  };
+
+  const handleMenu = (userMsg: string) => {
+    const lower = userMsg.toLowerCase().trim();
+
+    if (lower === "assess" || lower === "assessment") {
+      setPhase("assessment");
+      if (customer) {
+        // Pre-fill from customer data and auto-start
+        const profile: FinancialProfile = {
+          monthlyIncome: customer.monthlyIncome,
+          monthlyExpenses: customer.monthlyExpenses,
+          savings: customer.savings,
+          investmentGoals: customer.investmentGoals,
+          riskTolerance: customer.riskTolerance as "low" | "medium" | "high",
+        };
+        addMessages([
+          { role: "user", content: userMsg },
+          { role: "assistant", content: `Using your account data to run the financial assessment...\n\n• Income: $${customer.monthlyIncome.toLocaleString()}\n• Expenses: $${customer.monthlyExpenses.toLocaleString()}\n• Savings: $${customer.savings.toLocaleString()}\n• Goals: ${customer.investmentGoals}\n• Risk: ${customer.riskTolerance}\n\n${SYSTEM_PROMPTS.assessmentComplete}` },
+        ]);
+        setPhase("post_complete");
+        onComplete(profile);
+        return;
+      }
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: ASSESSMENT_QUESTIONS[0].question },
+      ]);
+      return;
+    }
+
+    if (lower === "account" || lower === "details") {
+      if (customer) {
+        addMessages([
+          { role: "user", content: userMsg },
+          { role: "assistant", content: FAQ_PROMPTS.accountDetailTemplate(customer) },
+        ]);
+      }
+      return;
+    }
+
+    if (lower === "faq" || lower === "help") {
+      const faqs = getAllFAQs();
+      const faqList = faqs.map((f, i) => `${i + 1}. ${f.question}`).join("\n");
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: FAQ_PROMPTS.faqListIntro + faqList + "\n\nAsk any of these or type your own question!" },
+      ]);
+      return;
+    }
+
+    // Try FAQ match
+    const faq = findFAQ(lower);
+    if (faq) {
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: faq.answer },
+      ]);
+      return;
+    }
+
+    addMessages([
+      { role: "user", content: userMsg },
+      { role: "assistant", content: FAQ_PROMPTS.noMatch },
+    ]);
+  };
+
+  const handleAssessment = (userMsg: string) => {
+    const currentQ = ASSESSMENT_QUESTIONS[step];
     const newAnswers = { ...answers, [currentQ.id]: userMsg };
     setAnswers(newAnswers);
 
-    const newMessages: Message[] = [...messages, { role: "user", content: userMsg }];
-
     if (step < ASSESSMENT_QUESTIONS.length - 1) {
       const nextQ = ASSESSMENT_QUESTIONS[step + 1];
-      newMessages.push({ role: "assistant", content: nextQ.question });
-      setMessages(newMessages);
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: nextQ.question },
+      ]);
       setStep(step + 1);
     } else {
-      newMessages.push({ role: "assistant", content: "Analyzing your financial data with our multi-agent system... 🔄\n\n*DataAnalyzer → RiskAgent → PlannerAgent → RMSummary*\n\nYour personalized financial dashboard is ready! Check the results on the right →" });
-      setMessages(newMessages);
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: SYSTEM_PROMPTS.assessmentComplete },
+      ]);
+      setPhase("post_complete");
 
       const riskMap: Record<string, "low" | "medium" | "high"> = {
         "Low — I prefer safety": "low",
@@ -64,36 +168,100 @@ export default function ChatWindow({ onComplete, isComplete }: ChatWindowProps) 
     }
   };
 
-  const handleChoice = (choice: string) => {
-    setInput(choice);
-    setTimeout(() => {
-      const currentQ = ASSESSMENT_QUESTIONS[step];
-      const newAnswers = { ...answers, [currentQ.id]: choice };
-      setAnswers(newAnswers);
-      setInput("");
+  const handlePostComplete = (userMsg: string) => {
+    const lower = userMsg.toLowerCase().trim();
 
-      const newMessages: Message[] = [...messages, { role: "user", content: choice }];
-      newMessages.push({ role: "assistant", content: "Analyzing your financial data with our multi-agent system... 🔄\n\n*DataAnalyzer → RiskAgent → PlannerAgent → RMSummary*\n\nYour personalized financial dashboard is ready! Check the results on the right →" });
-      setMessages(newMessages);
+    if (lower === "account" || lower === "details") {
+      if (customer) {
+        addMessages([
+          { role: "user", content: userMsg },
+          { role: "assistant", content: FAQ_PROMPTS.accountDetailTemplate(customer) },
+        ]);
+        return;
+      }
+    }
 
-      const riskMap: Record<string, "low" | "medium" | "high"> = {
-        "Low — I prefer safety": "low",
-        "Medium — balanced approach": "medium",
-        "High — I can handle volatility": "high",
-      };
+    if (lower === "faq" || lower === "help") {
+      const faqs = getAllFAQs();
+      const faqList = faqs.map((f, i) => `${i + 1}. ${f.question}`).join("\n");
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: FAQ_PROMPTS.faqListIntro + faqList },
+      ]);
+      return;
+    }
 
-      const profile: FinancialProfile = {
-        monthlyIncome: parseFloat(newAnswers.income) || 5000,
-        monthlyExpenses: parseFloat(newAnswers.expenses) || 3000,
-        savings: parseFloat(newAnswers.savings) || 10000,
-        investmentGoals: newAnswers.goals || "General wealth building",
-        riskTolerance: riskMap[choice] || "medium",
-      };
-      onComplete(profile);
-    }, 100);
+    const faq = findFAQ(lower);
+    if (faq) {
+      addMessages([
+        { role: "user", content: userMsg },
+        { role: "assistant", content: faq.answer },
+      ]);
+      return;
+    }
+
+    addMessages([
+      { role: "user", content: userMsg },
+      { role: "assistant", content: FAQ_PROMPTS.noMatch },
+    ]);
   };
 
-  const currentQ = step < ASSESSMENT_QUESTIONS.length ? ASSESSMENT_QUESTIONS[step] : null;
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const userMsg = input.trim();
+    setInput("");
+
+    switch (phase) {
+      case "account_lookup":
+        handleAccountLookup(userMsg);
+        break;
+      case "menu":
+        handleMenu(userMsg);
+        break;
+      case "assessment":
+        handleAssessment(userMsg);
+        break;
+      case "post_complete":
+        handlePostComplete(userMsg);
+        break;
+    }
+  };
+
+  const handleChoice = (choice: string) => {
+    const currentQ = ASSESSMENT_QUESTIONS[step];
+    const newAnswers = { ...answers, [currentQ.id]: choice };
+    setAnswers(newAnswers);
+
+    addMessages([
+      { role: "user", content: choice },
+      { role: "assistant", content: SYSTEM_PROMPTS.assessmentComplete },
+    ]);
+    setPhase("post_complete");
+
+    const riskMap: Record<string, "low" | "medium" | "high"> = {
+      "Low — I prefer safety": "low",
+      "Medium — balanced approach": "medium",
+      "High — I can handle volatility": "high",
+    };
+
+    const profile: FinancialProfile = {
+      monthlyIncome: parseFloat(newAnswers.income) || 5000,
+      monthlyExpenses: parseFloat(newAnswers.expenses) || 3000,
+      savings: parseFloat(newAnswers.savings) || 10000,
+      investmentGoals: newAnswers.goals || "General wealth building",
+      riskTolerance: riskMap[choice] || "medium",
+    };
+    onComplete(profile);
+  };
+
+  const currentQ = phase === "assessment" && step < ASSESSMENT_QUESTIONS.length ? ASSESSMENT_QUESTIONS[step] : null;
+
+  const getPlaceholder = () => {
+    if (phase === "account_lookup") return "Enter account number (e.g. 1001) or type 'skip'";
+    if (phase === "menu" || phase === "post_complete") return "Type 'assess', 'faq', 'account', or ask a question...";
+    if (currentQ?.type === "choice") return "Select an option below";
+    return currentQ?.placeholder || "Type your answer...";
+  };
 
   return (
     <div className="flex flex-col h-full rounded-lg border border-border bg-card wealth-shadow overflow-hidden">
@@ -117,7 +285,13 @@ export default function ChatWindow({ onComplete, isComplete }: ChatWindowProps) 
                 : "bg-muted text-foreground"
             }`}>
               {msg.content.split("\n").map((line, j) => (
-                <p key={j} className={j > 0 ? "mt-1" : ""}>{line.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1")}</p>
+                <p key={j} className={j > 0 ? "mt-1" : ""}>
+                  {line.split(/(\*\*.*?\*\*)/).map((part, k) =>
+                    part.startsWith("**") && part.endsWith("**")
+                      ? <strong key={k}>{part.slice(2, -2)}</strong>
+                      : part
+                  )}
+                </p>
               ))}
             </div>
             {msg.role === "user" && (
@@ -129,7 +303,7 @@ export default function ChatWindow({ onComplete, isComplete }: ChatWindowProps) 
         ))}
       </div>
 
-      {currentQ?.type === "choice" && !isComplete && (
+      {currentQ?.type === "choice" && phase === "assessment" && (
         <div className="px-4 pb-2 flex flex-wrap gap-2">
           {currentQ.options?.map((opt) => (
             <Button key={opt} variant="outline" size="sm" onClick={() => handleChoice(opt)} className="text-xs">
@@ -144,11 +318,11 @@ export default function ChatWindow({ onComplete, isComplete }: ChatWindowProps) 
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isComplete ? "Assessment complete" : currentQ?.placeholder || "Type your answer..."}
-            disabled={isComplete || currentQ?.type === "choice"}
+            placeholder={getPlaceholder()}
+            disabled={currentQ?.type === "choice"}
             className="text-sm"
           />
-          <Button type="submit" size="icon" disabled={isComplete || !input.trim()} className="wealth-gradient border-0">
+          <Button type="submit" size="icon" disabled={!input.trim()} className="wealth-gradient border-0">
             <Send className="w-4 h-4 text-primary-foreground" />
           </Button>
         </form>
