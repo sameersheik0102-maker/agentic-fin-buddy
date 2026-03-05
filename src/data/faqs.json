@@ -1,0 +1,50 @@
+[
+  {
+    "id": "faq-1",
+    "keywords": ["interest", "rate", "savings rate", "interest rate"],
+    "question": "What is the current savings interest rate?",
+    "answer": "Our current savings account interest rate is **4.25% APY** for balances above $5,000 and **3.50% APY** for balances below $5,000."
+  },
+  {
+    "id": "faq-2",
+    "keywords": ["minimum", "balance", "minimum balance"],
+    "question": "What is the minimum balance requirement?",
+    "answer": "Savings accounts require a minimum balance of **$500** to avoid monthly maintenance fees. Checking accounts require **$250**."
+  },
+  {
+    "id": "faq-3",
+    "keywords": ["transfer", "send", "money transfer", "wire"],
+    "question": "How do I transfer money between accounts?",
+    "answer": "You can transfer money via:\n• **Online Banking** — Log in and select 'Transfer Funds'\n• **Mobile App** — Use the 'Send Money' feature\n• **Branch Visit** — Any branch can process transfers\n\nInternal transfers are instant. External transfers take 1-3 business days."
+  },
+  {
+    "id": "faq-4",
+    "keywords": ["loan", "personal loan", "borrow", "credit"],
+    "question": "How can I apply for a personal loan?",
+    "answer": "You can apply for a personal loan with rates starting at **6.99% APR**.\n\n• Loan amounts: **$1,000 — $50,000**\n• Terms: **12 to 60 months**\n• Apply online, via the app, or at any branch.\n\nApproval is typically within 24 hours."
+  },
+  {
+    "id": "faq-5",
+    "keywords": ["card", "debit", "lost", "stolen", "block"],
+    "question": "What should I do if my card is lost or stolen?",
+    "answer": "If your card is lost or stolen:\n\n1. **Immediately block** your card via the mobile app or call our 24/7 helpline\n2. Report any unauthorized transactions\n3. Request a replacement card (delivered in 3-5 business days)\n\nYou will not be liable for unauthorized charges reported within 48 hours."
+  },
+  {
+    "id": "faq-6",
+    "keywords": ["branch", "hours", "timing", "open", "close"],
+    "question": "What are the branch operating hours?",
+    "answer": "Our standard branch hours are:\n• **Monday–Friday:** 9:00 AM — 5:00 PM\n• **Saturday:** 9:00 AM — 1:00 PM\n• **Sunday:** Closed\n\nSelect premium branches offer extended hours until 7:00 PM on weekdays."
+  },
+  {
+    "id": "faq-7",
+    "keywords": ["fee", "charges", "maintenance", "cost"],
+    "question": "What fees are associated with my account?",
+    "answer": "Common account fees:\n• **Monthly maintenance:** $0 (if minimum balance maintained)\n• **ATM (out-of-network):** $2.50 per transaction\n• **Wire transfer (domestic):** $25\n• **Wire transfer (international):** $45\n• **Overdraft:** $35 per occurrence\n\nPremium accounts waive most of these fees."
+  },
+  {
+    "id": "faq-8",
+    "keywords": ["investment", "invest", "mutual fund", "stock"],
+    "question": "What investment options do you offer?",
+    "answer": "We offer a range of investment products:\n• **Mutual Funds** — Diversified portfolios managed by experts\n• **Fixed Deposits** — Guaranteed returns from 4.5%–6.0%\n• **Bonds** — Government and corporate options\n• **Equity Trading** — Access to stock markets\n\nSpeak with our wealth advisor for a personalized investment plan."
+  }
+]
